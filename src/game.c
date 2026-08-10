@@ -1,17 +1,33 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   game.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: frrusso <frrusso@learner.42.tech>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/08/07 16:14:00 by frrusso           #+#    #+#             */
+/*   Updated: 2026/08/07 16:14:03 by frrusso          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "lemipc.h"
 
 void	display_board(const t_board *board)
 {
+	t_vec2	pos;
+
 	printf("\33[H\33[J");// Clear screen
 	printf("=== LEMIPC BOARD (%d active players) ===\n", board->active_players);
-	for (int y = 0; y < BOARD_HEIGHT; y++)
+	pos.y = -1;
+	while (++pos.y < BOARD_HEIGHT)
 	{
-		for (int x = 0; x < BOARD_WIDTH; x++)
+		pos.x = -1;
+		while (++pos.x < BOARD_WIDTH)
 		{
-			if (board->grid[y][x] == 0)
+			if (board->grid[pos.y][pos.x] == 0)
 				printf(". ");
 			else
-				printf("%d ", board->grid[y][x]);
+				printf("%d ", board->grid[pos.y][pos.x]);
 		}
 		printf("\n");
 	}
@@ -21,24 +37,28 @@ void	display_board(const t_board *board)
 // Returns 1 if player is surrounded by 2+ players from the SAME opposing team
 int	check_death(t_game *game)
 {
-	int	team_counts[100] = {0};
-	int	nx;
-	int	ny;
-	int	enemy_team;
+	int		i;
+	int		team_counts[100];
+	t_vec2	d;
+	t_vec2	n;
+	int		enemy_team;
 
-	for (int dy = -1; dy <= 1; dy++)
+	i = -1;
+	while (++i < 100)
+		team_counts[i] = 0;
+	d.y = -2;
+	while (++d.y <= 1)
 	{
-		for (int dx = -1; dx <= 1; dx++)
+		d.x = -2;
+		while (++d.x <= 1)
 		{
-			if (dx == 0 && dy == 0)
+			if (d.x == 0 && d.y == 0)
 				continue ;
-
-			nx = game->pos_x + dx;
-			ny = game->pos_y + dy;
-
-			if (nx >= 0 && nx < BOARD_WIDTH && ny >= 0 && ny < BOARD_HEIGHT)
+			n.x = game->pos_x + d.x;
+			n.y = game->pos_y + d.y;
+			if (n.x >= 0 && n.x < BOARD_WIDTH && n.y >= 0 && n.y < BOARD_HEIGHT)
 			{
-				enemy_team = game->board->grid[ny][nx];
+				enemy_team = game->board->grid[n.y][n.x];
 				if (enemy_team > 0 && enemy_team != game->team_id)
 				{
 					if (enemy_team < 100)
@@ -47,10 +67,10 @@ int	check_death(t_game *game)
 			}
 		}
 	}
-
-	for (int t = 0; t < 100; t++)
+	i = -1;
+	while (++i < 100)
 	{
-		if (team_counts[t] >= 2)
+		if (team_counts[i] >= 2)
 			return (1);
 	}
 	return (0);
@@ -58,26 +78,29 @@ int	check_death(t_game *game)
 
 static void	find_closest_enemy(t_game *game, int *target_x, int *target_y)
 {
-	int	min_dist = 999999;
-	int	cell_team;
-	int	dist;
+	int		min_dist;
+	t_vec2	pos;
+	int		cell_team;
+	int		dist;
 
 	*target_x = -1;
 	*target_y = -1;
-
-	for (int y = 0; y < BOARD_HEIGHT; y++)
+	min_dist = 999999;
+	pos.y = -1;
+	while (++pos.y < BOARD_HEIGHT)
 	{
-		for (int x = 0; x < BOARD_WIDTH; x++)
+		pos.x = -1;
+		while (++pos.x < BOARD_WIDTH)
 		{
-			cell_team = game->board->grid[y][x];
+			cell_team = game->board->grid[pos.y][pos.x];
 			if (cell_team > 0 && cell_team != game->team_id)
 			{
-				dist = abs(game->pos_x - x) + abs(game->pos_y - y);
+				dist = abs(game->pos_x - pos.x) + abs(game->pos_y - pos.y);
 				if (dist < min_dist)
 				{
 					min_dist = dist;
-					*target_x = x;
-					*target_y = y;
+					*target_x = pos.x;
+					*target_y = pos.y;
 				}
 			}
 		}
@@ -87,63 +110,64 @@ static void	find_closest_enemy(t_game *game, int *target_x, int *target_y)
 void	move_player(t_game *game)
 {
 	t_msg	msg;
-	int		tx = -1, ty = -1;
-	int		next_x = game->pos_x;
-	int		next_y = game->pos_y;
+	t_vec2	t;
+	t_vec2	next;
 	int		dir;
 
+	next.x = game->pos_x;
+	next.y = game->pos_y;
+	t.x = -1;
+	t.y = -1;
 	// Check MSGQ for team strategy message
 	if (msgrcv(game->msgid, &msg, sizeof(t_msg) - sizeof(long), game->team_id,
 			IPC_NOWAIT) != -1)
 	{
-		tx = msg.target_x;
-		ty = msg.target_y;
+		t.x = msg.target_x;
+		t.y = msg.target_y;
 	}
 	else
 	{
 		// Find closest enemy and broadcast to teammates
-		find_closest_enemy(game, &tx, &ty);
-		if (tx != -1)
+		find_closest_enemy(game, &t.x, &t.y);
+		if (t.x != -1)
 		{
 			msg.mtype = game->team_id;
-			msg.target_x = tx;
-			msg.target_y = ty;
+			msg.target_x = t.x;
+			msg.target_y = t.y;
 			msgsnd(game->msgid, &msg, sizeof(t_msg) - sizeof(long), IPC_NOWAIT);
 		}
 	}
-
-	if (tx != -1)
+	if (t.x != -1)
 	{
 		// Move 1 tile toward target (up, down, left, right)
-		if (next_x < tx)
-			next_x++;
-		else if (next_x > tx)
-			next_x--;
-		else if (next_y < ty)
-			next_y++;
-		else if (next_y > ty)
-			next_y--;
+		if (next.x < t.x)
+			next.x++;
+		else if (next.x > t.x)
+			next.x--;
+		else if (next.y < t.y)
+			next.y++;
+		else if (next.y > t.y)
+			next.y--;
 	}
 	else
 	{
 		// Random movement if no enemy on board
 		dir = rand() % 4;
-		if (dir == 0 && next_y > 0)
-			next_y--;
-		else if (dir == 1 && next_y < BOARD_HEIGHT - 1)
-			next_y++;
-		else if (dir == 2 && next_x > 0)
-			next_x--;
-		else if (dir == 3 && next_x < BOARD_WIDTH - 1)
-			next_x++;
+		if (dir == 0 && next.y > 0)
+			next.y--;
+		else if (dir == 1 && next.y < BOARD_HEIGHT - 1)
+			next.y++;
+		else if (dir == 2 && next.x > 0)
+			next.x--;
+		else if (dir == 3 && next.x < BOARD_WIDTH - 1)
+			next.x++;
 	}
-
 	// Perform movement if destination cell is empty
-	if (game->board->grid[next_y][next_x] == 0)
+	if (game->board->grid[next.y][next.x] == 0)
 	{
 		game->board->grid[game->pos_y][game->pos_x] = 0;
-		game->pos_x = next_x;
-		game->pos_y = next_y;
+		game->pos_x = next.x;
+		game->pos_y = next.y;
 		game->board->grid[game->pos_y][game->pos_x] = game->team_id;
 	}
 }

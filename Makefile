@@ -8,9 +8,10 @@ SRC_PATH	=	./src/
 OBJ_PATH	=	./obj/
 OBJ_DIRS	=	$(OBJ_PATH)
 OBJ			=	$(addprefix $(OBJ_PATH),$(SRC:.c=.o))
-IGNORE		:=	en_US|DECL_ASSIGN_LINE|EMPTY_LINE_FUNCTION|FORBIDDEN_CS
-IGNORE		:=	$(IGNORE)|GLOBAL_VAR_DETECTED|INVALID_HEADER|TOO_MANY_LINES
-IGNORE		:=	$(IGNORE)|WRONG_SCOPE_COMMENT
+IGNORE		:=	GLOBAL_VAR_DETECTED \
+				TOO_MANY_LINES \
+				WRONG_SCOPE_COMMENT
+IGNORE_FLAGS := $(addprefix -e ,$(IGNORE))
 
 all:$(NAME)
 
@@ -23,8 +24,11 @@ fclean:clean
 re:fclean
 	$(MAKE) all
 
-norminette:
-	@norminette | grep -vE "$(IGNORE)"
+run:re
+	./$(NAME) 1
+
+norm:
+	@norminette | grep -v $(IGNORE_FLAGS) || true
 
 $(OBJ_PATH)%.o:$(SRC_PATH)%.c | $(OBJ_DIRS)
 	$(CC) $(FLAGS) $(INC) -c $< -o $@
@@ -35,4 +39,4 @@ $(OBJ_DIRS):
 $(NAME):$(OBJ)
 	$(CC) $(FLAGS) $(INC) $(OBJ) -o $(NAME)
 
-.PHONY:all clean fclean re norminette
+.PHONY:all clean fclean re run norm

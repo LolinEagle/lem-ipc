@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ipc.c                                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: frrusso <frrusso@learner.42.tech>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/08/07 16:14:11 by frrusso           #+#    #+#             */
+/*   Updated: 2026/08/07 16:14:13 by frrusso          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "lemipc.h"
 
 void	lock_sem(int semid)
@@ -19,6 +31,7 @@ void	unlock_sem(int semid)
 int	init_ipcs(t_game *game)
 {
 	key_t	key;
+	t_vec2	pos;
 
 	key = ftok(SHM_KEY_PATH, SHM_KEY_ID);
 	if (key == -1)
@@ -26,7 +39,6 @@ int	init_ipcs(t_game *game)
 		perror("ftok");
 		return (-1);
 	}
-
 	// Try to create shared memory exclusively
 	game->shmid = shmget(key, sizeof(t_board), IPC_CREAT | IPC_EXCL | 0666);
 	if (game->shmid != -1)
@@ -35,16 +47,13 @@ int	init_ipcs(t_game *game)
 		game->is_creator = 1;
 		game->semid = semget(key, 1, IPC_CREAT | IPC_EXCL | 0666);
 		game->msgid = msgget(key, IPC_CREAT | IPC_EXCL | 0666);
-
 		if (game->semid == -1 || game->msgid == -1)
 		{
 			perror("semget/msgget");
 			return (-1);
 		}
-
 		// Initialize mutex semaphore to 1
 		semctl(game->semid, 0, SETVAL, 1);
-
 		// Attach SHM and initialize empty board
 		game->board = (t_board *)shmat(game->shmid, NULL, 0);
 		if (game->board == (void *)-1)
@@ -52,10 +61,13 @@ int	init_ipcs(t_game *game)
 			perror("shmat");
 			return (-1);
 		}
-
-		for (int y = 0; y < BOARD_HEIGHT; y++)
-			for (int x = 0; x < BOARD_WIDTH; x++)
-				game->board->grid[y][x] = 0;
+		pos.y = -1;
+		while (++pos.y < BOARD_HEIGHT)
+		{
+			pos.x = -1;
+			while (++pos.x < BOARD_WIDTH)
+				game->board->grid[pos.y][pos.x] = 0;
+		}
 		game->board->active_players = 0;
 	}
 	else
@@ -65,13 +77,11 @@ int	init_ipcs(t_game *game)
 		game->shmid = shmget(key, sizeof(t_board), 0666);
 		game->semid = semget(key, 1, 0666);
 		game->msgid = msgget(key, 0666);
-
 		if (game->shmid == -1 || game->semid == -1 || game->msgid == -1)
 		{
 			perror("shmget/semget/msgget client");
 			return (-1);
 		}
-
 		game->board = (t_board *)shmat(game->shmid, NULL, 0);
 		if (game->board == (void *)-1)
 		{

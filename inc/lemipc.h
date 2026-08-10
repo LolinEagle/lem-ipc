@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   lemipc.h                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: frrusso <frrusso@learner.42.tech>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/08/07 16:13:40 by frrusso           #+#    #+#             */
+/*   Updated: 2026/08/07 16:13:48 by frrusso          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #pragma once
 
 #include <stdio.h>
@@ -44,6 +56,12 @@ typedef struct s_game
 	int		pos_y;
 	int		is_creator;
 }	t_game;
+
+typedef struct s_vec2
+{
+	int	x;
+	int	y;
+}	t_vec2;
 
 // Global pointer for signal cleanup
 extern t_game	*g_game;
