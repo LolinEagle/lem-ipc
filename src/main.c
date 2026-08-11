@@ -14,6 +14,26 @@
 
 t_game	*g_game = NULL;
 
+int	ft_atoi(char *str)
+{
+	int	i;
+	int	n;
+	int	res;
+
+	n = 1;
+	res = 0;
+	i = 0;
+	while (str[i] == ' ' || (str[i] >= '\t' && str[i] <= '\r'))
+		i++;
+	if (str[i] == '-')
+		n = -1;
+	if (str[i] == '+' || str[i] == '-')
+		i++;
+	while (str[i] >= '0' && str[i] <= '9')
+		res = res * 10 + (str[i++] - '0');
+	return (res * n);
+}
+
 void	handle_signal(int sig)
 {
 	(void)sig;
@@ -30,7 +50,7 @@ void	handle_signal(int sig)
 			shmdt(g_game->board);
 		}
 	}
-	printf("\n[lemipc] Player terminated cleanly.\n");
+	ft_printf("\n[lemipc] Player terminated cleanly.\n");
 	exit(0);
 }
 
@@ -44,22 +64,23 @@ int	main(int argc, char **argv)
 
 	if (argc != 2)
 	{
-		printf("Usage: %s <team_id>\n", argv[0]);
+		ft_printf("Usage: %s <team_id>\n", argv[0]);
 		return (1);
 	}
-	team_id = atoi(argv[1]);
-	if (team_id <= 0)
+	team_id = ft_atoi(argv[1]);
+	if (team_id <= 0 || team_id >= 10)
 	{
-		printf("Error: Invalid team ID (must be > 0)\n");
+		ft_printf("Error: Invalid team ID (must be > 0 and < 10)\n");
 		return (1);
 	}
 	g_game = &game;
 	game.team_id = team_id;
-	signal(SIGINT, handle_signal);
-	signal(SIGTERM, handle_signal);
+	signal(SIGINT, handle_signal);// Signal Interrupt
+	signal(SIGTERM, handle_signal);// Signal Terminate
 	if (init_ipcs(&game) == -1)
 		return (1);
 	lock_sem(game.semid);
+
 	// Spawn player on a random empty tile
 	srand(time(NULL) ^ getpid());
 	placed = 0;
@@ -80,20 +101,22 @@ int	main(int argc, char **argv)
 	}
 	if (!placed)
 	{
-		printf("Error: Map is full!\n");
+		ft_printf("Error: Map is full!\n");
 		unlock_sem(game.semid);
 		shmdt(game.board);
 		return (1);
 	}
 	unlock_sem(game.semid);
+
 	// Main game loop
 	while (1)
 	{
 		lock_sem(game.semid);
+
 		// Death check
 		if (check_death(&game))
 		{
-			printf("Player from team %d died at (%d, %d)!\n", game.team_id,
+			ft_printf("Player from team %d died at (%d, %d)!\n", game.team_id,
 				game.pos_x, game.pos_y);
 			game.board->grid[game.pos_y][game.pos_x] = 0;
 			game.board->active_players--;
@@ -106,8 +129,10 @@ int	main(int argc, char **argv)
 			}
 			exit(0);
 		}
+
 		// Execute movement AI
 		move_player(&game);
+
 		// Render board
 		display_board(game.board);
 		unlock_sem(game.semid);

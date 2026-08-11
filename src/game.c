@@ -16,22 +16,24 @@ void	display_board(const t_board *board)
 {
 	t_vec2	pos;
 
-	printf("\33[H\33[J");// Clear screen
-	printf("=== LEMIPC BOARD (%d active players) ===\n", board->active_players);
+	ft_printf("\33[H\33[J");// Clear screen
+	ft_printf("--- LEM-IPC BOARD (%d active players) ---\n\n",
+		board->active_players);
 	pos.y = -1;
 	while (++pos.y < BOARD_HEIGHT)
 	{
+		ft_printf("          ");
 		pos.x = -1;
 		while (++pos.x < BOARD_WIDTH)
 		{
 			if (board->grid[pos.y][pos.x] == 0)
-				printf(". ");
+				ft_printf(". ");
 			else
-				printf("%d ", board->grid[pos.y][pos.x]);
+				ft_printf("%d ", board->grid[pos.y][pos.x]);
 		}
-		printf("\n");
+		ft_printf("\n");
 	}
-	printf("========================================\n");
+	ft_printf("\n----------------------------------------\n");
 }
 
 // Returns 1 if player is surrounded by 2+ players from the SAME opposing team
@@ -118,6 +120,7 @@ void	move_player(t_game *game)
 	next.y = game->pos_y;
 	t.x = -1;
 	t.y = -1;
+
 	// Check MSGQ for team strategy message
 	if (msgrcv(game->msgid, &msg, sizeof(t_msg) - sizeof(long), game->team_id,
 			IPC_NOWAIT) != -1)
@@ -162,6 +165,7 @@ void	move_player(t_game *game)
 		else if (dir == 3 && next.x < BOARD_WIDTH - 1)
 			next.x++;
 	}
+
 	// Perform movement if destination cell is empty
 	if (game->board->grid[next.y][next.x] == 0)
 	{

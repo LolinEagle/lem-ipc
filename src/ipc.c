@@ -39,6 +39,7 @@ int	init_ipcs(t_game *game)
 		perror("ftok");
 		return (-1);
 	}
+
 	// Try to create shared memory exclusively
 	game->shmid = shmget(key, sizeof(t_board), IPC_CREAT | IPC_EXCL | 0666);
 	if (game->shmid != -1)
@@ -52,8 +53,10 @@ int	init_ipcs(t_game *game)
 			perror("semget/msgget");
 			return (-1);
 		}
+
 		// Initialize mutex semaphore to 1
 		semctl(game->semid, 0, SETVAL, 1);
+
 		// Attach SHM and initialize empty board
 		game->board = (t_board *)shmat(game->shmid, NULL, 0);
 		if (game->board == (void *)-1)
@@ -97,5 +100,5 @@ void	cleanup_ipcs(t_game *game)
 	shmctl(game->shmid, IPC_RMID, NULL);
 	semctl(game->semid, 0, IPC_RMID);
 	msgctl(game->msgid, IPC_RMID, NULL);
-	printf("[lemipc] Last player left. Cleaned up IPC resources.\n");
+	ft_printf("[lemipc] Last player left. Cleaned up IPC resources.\n");
 }
