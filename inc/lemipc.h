@@ -14,16 +14,11 @@
 
 #include <ft_printf.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <signal.h>
 #include <time.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/msg.h>
-#include <errno.h>
 
 #define BOARD_WIDTH 10
 #define BOARD_HEIGHT 10

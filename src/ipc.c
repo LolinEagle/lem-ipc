@@ -30,9 +30,10 @@ void	unlock_sem(int semid)
 
 int	init_ipcs(t_game *game)
 {
-	key_t	key;
+	int		key;
 	t_vec2	pos;
 
+	// Convert a pathname and a project identifier to a System V IPC key
 	key = ftok(SHM_KEY_PATH, SHM_KEY_ID);
 	if (key == -1)
 	{

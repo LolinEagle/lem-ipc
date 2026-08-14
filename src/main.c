@@ -68,9 +68,9 @@ int	main(int argc, char **argv)
 		return (1);
 	}
 	team_id = ft_atoi(argv[1]);
-	if (team_id <= 0 || team_id >= 10)
+	if (team_id < 1 || team_id > 9)
 	{
-		ft_printf("Error: Invalid team ID (must be > 0 and < 10)\n");
+		ft_printf("Error: Invalid team ID (must be between 1 and 9)\n");
 		return (1);
 	}
 	g_game = &game;
@@ -99,14 +99,13 @@ int	main(int argc, char **argv)
 			break ;
 		}
 	}
+	unlock_sem(game.semid);
 	if (!placed)
 	{
 		ft_printf("Error: Map is full!\n");
-		unlock_sem(game.semid);
 		shmdt(game.board);
 		return (1);
 	}
-	unlock_sem(game.semid);
 
 	// Main game loop
 	while (1)
