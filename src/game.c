@@ -40,13 +40,13 @@ void	display_board(const t_board *board)
 int	check_death(t_game *game)
 {
 	int		i;
-	int		team_counts[100];
+	int		team_counts[10];
 	t_vec2	d;
 	t_vec2	n;
 	int		enemy_team;
 
 	i = -1;
-	while (++i < 100)
+	while (++i < 10)
 		team_counts[i] = 0;
 	d.y = -2;
 	while (++d.y <= 1)
@@ -63,14 +63,14 @@ int	check_death(t_game *game)
 				enemy_team = game->board->grid[n.y][n.x];
 				if (enemy_team > 0 && enemy_team != game->team_id)
 				{
-					if (enemy_team < 100)
+					if (enemy_team < 10)
 						team_counts[enemy_team]++;
 				}
 			}
 		}
 	}
 	i = -1;
-	while (++i < 100)
+	while (++i < 10)
 	{
 		if (team_counts[i] >= 2)
 			return (1);
@@ -109,12 +109,26 @@ static void	find_closest_enemy(t_game *game, int *target_x, int *target_y)
 	}
 }
 
+void	random_movement(t_vec2 *next)
+{
+	int		dir;
+
+	dir = rand() % 4;
+	if (dir == 0 && next->y > 0)
+		next->y--;
+	else if (dir == 1 && next->y < BOARD_HEIGHT - 1)
+		next->y++;
+	else if (dir == 2 && next->x > 0)
+		next->x--;
+	else if (dir == 3 && next->x < BOARD_WIDTH - 1)
+		next->x++;
+}
+
 void	move_player(t_game *game)
 {
 	t_msg	msg;
 	t_vec2	t;
 	t_vec2	next;
-	int		dir;
 
 	next.x = game->pos_x;
 	next.y = game->pos_y;
@@ -142,28 +156,24 @@ void	move_player(t_game *game)
 	}
 	if (t.x != -1)
 	{
-		// Move 1 tile toward target (up, down, left, right)
-		if (next.x < t.x)
+		// Move 1 tile toward target else randomly (up, down, left, right)
+		if (rand() % 10 == 0)
+			random_movement(&next);// 10% chance of moveing randomly
+		else if (next.x < t.x && game->board->grid[next.y][next.x + 1] == 0)
 			next.x++;
-		else if (next.x > t.x)
+		else if (next.x > t.x && game->board->grid[next.y][next.x - 1] == 0)
 			next.x--;
-		else if (next.y < t.y)
+		else if (next.y < t.y && game->board->grid[next.y + 1][next.x] == 0)
 			next.y++;
-		else if (next.y > t.y)
+		else if (next.y > t.y && game->board->grid[next.y - 1][next.x] == 0)
 			next.y--;
+		else
+			random_movement(&next);
 	}
 	else
 	{
 		// Random movement if no enemy on board
-		dir = rand() % 4;
-		if (dir == 0 && next.y > 0)
-			next.y--;
-		else if (dir == 1 && next.y < BOARD_HEIGHT - 1)
-			next.y++;
-		else if (dir == 2 && next.x > 0)
-			next.x--;
-		else if (dir == 3 && next.x < BOARD_WIDTH - 1)
-			next.x++;
+		random_movement(&next);
 	}
 
 	// Perform movement if destination cell is empty
